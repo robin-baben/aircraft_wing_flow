@@ -1,0 +1,7 @@
+cmake_minimum_required(VERSION 3.2)
+project(aircraft_wing_flow cxx)
+set(CMAKE_CXX_STANDART ||)
+set(CMAKE_CXX_FLAGS "-O3")
+find_package(LAPACK REQUIRED)
+add_executable(main file1.cpp file2.cpp main.cpp)
+target_link_libraries(main PUBLIC LAPACK::LAPACK)

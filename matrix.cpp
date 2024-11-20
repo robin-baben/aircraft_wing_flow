@@ -7,6 +7,7 @@
 #include <vector>
 #include <fstream>
 #include <iomanip>
+#include <cmath>
 
 using std::cout;
 using std::endl;
@@ -51,32 +52,54 @@ class Point3D {
      
     
 };
+
+double abs(const Point3D P) {
+    return sqrt(P.x*P.x + P.y*P.y + P.z*P.z);
+}
+
 std::ostream & operator<<(std::ostream & s, const Point3D & P){
     s << '(' << P.x << ", " << P.y << ", " << P.z << ')' << std::endl;
     return s;
 }
+
 Point3D operator+(const Point3D& P1, const Point3D& P2) {
         return Point3D(P1.x + P2.x, P1.y + P2.y, P1.z + P2.z);
 }
+
+double DotProd_Point(Point3D& P1, Point3D& P2)
+{
+    double res;
+    res = P1.x * P2.x + P1.y * P2.y + P1.z * P2.z;
+    return res;
+}
+
+Point3D VecProd_Point(Point3D& P1, Point3D& P2)
+{
+    Point3D res;
+    res.x = P1.y * P2.z - P1.z * P2.y;
+    res.y = P1.z * P2.x - P1.x * P2.z;
+    res.z = P1.x * P2.y - P1.y * P2.x;
+    return res;
+}
+
+
 
 class Frame {
     public:
     Point3D A, B, C, D;
     double square;
+    Point3D norm;
 
     Frame(const Point3D& _A, const Point3D& _B, const Point3D& _C, const Point3D& _D) {
         this->A = _A;
         this->B = _B;
         this->C = _C;
         this->D = _D;
-    }
 
-    Frame(const Point3D& _A, const Point3D& _B, const Point3D& _C, const Point3D& _D, const double& _square) {
-        this->A = _A;
-        this->B = _B;
-        this->C = _C;
-        this->D = _D;
-        this->square = _square;
+        Point3D d1 = _A - _C;
+        Point3D d2 = _B - _D;
+
+        square = abs(VecProd_Point(d1, d2));
     }
 };
 
@@ -105,11 +128,8 @@ void init(std::string path, vector<Frame>& frames, vector<int>& up_ind, vector<i
             Point3D C(x3, y3, z3);
             Point3D D(x4, y4, z4);
 
-            // подсчет площади добавить
-            double square;
 
-
-            frames.push_back(Frame(A, B, C, D, square));
+            frames.push_back(Frame(A, B, C, D));
 
             double xs[4] = {x1, x2, x3, x4};
             int count = 0;

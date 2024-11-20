@@ -44,15 +44,25 @@ class Point3D {
         this->z=P.z;
         return *this;
     }
+
+    Point3D operator-(Point3D P2) const {
+        return Point3D(x - P2.x, y - P2.y, z - P2.z);
+    }
+     
+    
 };
 std::ostream & operator<<(std::ostream & s, const Point3D & P){
     s << '(' << P.x << ", " << P.y << ", " << P.z << ')' << std::endl;
     return s;
 }
+Point3D operator+(const Point3D& P1, const Point3D& P2) {
+        return Point3D(P1.x + P2.x, P1.y + P2.y, P1.z + P2.z);
+}
 
 class Frame {
     public:
     Point3D A, B, C, D;
+    double square;
 
     Frame(const Point3D& _A, const Point3D& _B, const Point3D& _C, const Point3D& _D) {
         this->A = _A;
@@ -60,10 +70,17 @@ class Frame {
         this->C = _C;
         this->D = _D;
     }
+
+    Frame(const Point3D& _A, const Point3D& _B, const Point3D& _C, const Point3D& _D, const double& _square) {
+        this->A = _A;
+        this->B = _B;
+        this->C = _C;
+        this->D = _D;
+        this->square = _square;
+    }
 };
 
-vector<Frame> init(std::string path) {
-    vector<Frame> frames;
+void init(std::string path, vector<Frame>& frames, vector<int>& up_ind, vector<int>& down_ind) {
 
     std::string line;
     double x1, y1, z1, x2, y2, z2, x3, y3, z3, x4, y4, z4;
@@ -83,11 +100,32 @@ vector<Frame> init(std::string path) {
         while (std::getline(in, line)) {
             std::istringstream ss(line);
             ss >> x1 >> y1 >> z1 >> x2 >> y2 >> z2 >> x3 >> y3 >> z3 >> x4 >> y4 >> z4;
-            frames.push_back(Frame(Point3D(x1, y1, z1), Point3D(x2, y2, z2), Point3D(x3, y3, z3), Point3D(x4, y4, z4)));
+            Point3D A(x1, y1, z1);
+            Point3D B(x2, y2, z2);
+            Point3D C(x3, y3, z3);
+            Point3D D(x4, y4, z4);
+
+            // подсчет площади добавить
+            double square;
+
+
+            frames.push_back(Frame(A, B, C, D, square));
+
+            double xs[4] = {x1, x2, x3, x4};
+            int count = 0;
+            for (int i = 0; i < 4; ++i) {
+                if (abs(xs[i] - 1.0) < 1e-6) {
+                    count++;
+                }
+            }
+
+            if (count == 2) {
+
+            }
+
         }
     }
     in.close();     // закрываем файл
-    return frames;
 }
 
     
@@ -140,9 +178,14 @@ int main() {
     //     free(b2);
     //     free(Ipvt);
     // }
-    // Point3D P1(1.5, 1.5, 10.3);
-    // cout << P1;
-    vector<Frame> frames = init("wing_10_20.dat");
+    //Point3D P1(1.5, 1.5, 10.3);
+    //Point3D P2(0.5, 3.0, 11.0);
+    //cout << P1 - P2;
+
+    vector<Frame> frames;
+    vector<int> up_ind;
+    vector<int> down_ind;
+    init("wing_10_20.dat", frames, up_ind, down_ind);
 
     return 0;
 }

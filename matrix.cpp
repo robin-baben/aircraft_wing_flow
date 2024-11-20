@@ -53,6 +53,10 @@ class Point3D {
     Point3D operator/(double num) const {
         return Point3D(x / num, y / num, z / num);
     }
+
+    Point3D operator*(double num) const {
+        return Point3D(x * num, y * num, z * num);
+    }
 };
 
 double abs(const Point3D P) {

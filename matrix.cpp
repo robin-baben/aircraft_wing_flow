@@ -49,8 +49,10 @@ class Point3D {
     Point3D operator-(Point3D P2) const {
         return Point3D(x - P2.x, y - P2.y, z - P2.z);
     }
-     
-    
+
+    Point3D operator/(double num) const {
+        return Point3D(x / num, y / num, z / num);
+    }
 };
 
 double abs(const Point3D P) {
@@ -99,7 +101,8 @@ class Frame {
         Point3D d1 = _A - _C;
         Point3D d2 = _B - _D;
 
-        square = abs(VecProd_Point(d1, d2));
+        square = abs(VecProd_Point(d1, d2)) / 2;
+        norm = VecProd_Point(d1, d2) / (2*square);
     }
 };
 

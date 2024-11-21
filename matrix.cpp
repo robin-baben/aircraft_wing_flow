@@ -96,6 +96,7 @@ public:
     vector<Point3D> four_points{}; // A, B, C, D;
     double square;
     Point3D norm;
+    bool up_down_side;
 
     Frame() {};
 
@@ -158,8 +159,7 @@ void init(std::string path, vector<Frame>& frames, double par) {  // vector<int>
             Point3D D(x4, y4, z4);
             vector<Point3D> vec_points{A, B, C, D};
             // cout << A << B << C << D;
-            Frame frame_tmp(A,B,C,D);
-            frames.push_back(frame_tmp);  // Frame(A, B, C, D)
+            frames.push_back(Frame(A, B, C, D));  // 
 
             double xs[4] = {x1, x2, x3, x4};
             bool x_flag[4] = {false};
@@ -265,9 +265,9 @@ int main() {
     
     Frame frame1 (P1, P2, P3, P4);
 
-    // vector<Frame> frames;
-    // double par = 10.0;
-    // init("wing_2.dat", frames, par);
+    vector<Frame> frames;
+    double par = 10.0;
+    init("wing_2.dat", frames, par);
 
 
     cout << frame1.norm;

@@ -12,6 +12,7 @@ public:
     vector<Point3D> four_points; // A, B, C, D;
     double square;
     Point3D norm;
+    Point3D center;
     bool up_down_side;
 
     Frame() {};

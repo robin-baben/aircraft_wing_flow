@@ -86,7 +86,99 @@ void init(
     in.close();     // закрываем файл
 }
 
+void Fill_matrix(double* A, double* B, Point3D& W_st, vector<Frame>& frames, vector<Frame>& sled)
+{
+    int full_size = frames.size() + sled.size() + 1;
+    for (int i = 0; i < frames.size(); i++) {
+        for (int j = 0; j < frames.size(); j++) {
+            if (frames[j].four_points[1] != frames[j].four_points[2] && frames[j].four_points[2] != frames[j].four_points[3] && frames[j].four_points[3] != frames[j].four_points[4]
+                && frames[j].four_points[4] != frames[j].four_points[1] && frames[j].four_points[2] != frames[j].four_points[4] && frames[j].four_points[1] != frames[j].four_points[3]) {
+                A[i * full_size + j] = DotProd_Point(Bio_Savar(frames[i].center, frames[j].four_points[1], frames[j].four_points[2]), frames[i].norm) +
+                    DotProd_Point(Bio_Savar(frames[i].center, frames[j].four_points[2], frames[j].four_points[3]), frames[i].norm) +
+                    DotProd_Point(Bio_Savar(frames[i].center, frames[j].four_points[3], frames[j].four_points[4]), frames[i].norm) +
+                    DotProd_Point(Bio_Savar(frames[i].center, frames[j].four_points[4], frames[j].four_points[1]), frames[i].norm);
+            }
+            else if (frames[j].four_points[1] == frames[j].four_points[2] || frames[j].four_points[1] == frames[j].four_points[3]) {
+                A[i * full_size + j] = DotProd_Point(Bio_Savar(frames[i].center, frames[j].four_points[2], frames[j].four_points[3]), frames[i].norm) +
+                    DotProd_Point(Bio_Savar(frames[i].center, frames[j].four_points[3], frames[j].four_points[4]), frames[i].norm) +
+                    DotProd_Point(Bio_Savar(frames[i].center, frames[j].four_points[4], frames[j].four_points[2]), frames[i].norm);
+            }
+            else if (frames[j].four_points[2] == frames[j].four_points[3] || frames[j].four_points[2] == frames[j].four_points[4]) {
+                A[i * full_size + j] = DotProd_Point(Bio_Savar(frames[i].center, frames[j].four_points[1], frames[j].four_points[3]), frames[i].norm) +
+                    DotProd_Point(Bio_Savar(frames[i].center, frames[j].four_points[3], frames[j].four_points[4]), frames[i].norm) +
+                    DotProd_Point(Bio_Savar(frames[i].center, frames[j].four_points[4], frames[j].four_points[1]), frames[i].norm);
+            }
+            else if (frames[j].four_points[3] == frames[j].four_points[4] || frames[j].four_points[4] == frames[j].four_points[1]) {
+                A[i * full_size + j] = DotProd_Point(Bio_Savar(frames[i].center, frames[j].four_points[1], frames[j].four_points[2]), frames[i].norm) +
+                    DotProd_Point(Bio_Savar(frames[i].center, frames[j].four_points[2], frames[j].four_points[3]), frames[i].norm) +
+                    DotProd_Point(Bio_Savar(frames[i].center, frames[j].four_points[3], frames[j].four_points[1]), frames[i].norm);
+            }
+        }
+    }
+    for (int i = frames.size(); i < full_size - 1; i++) {
+        for (int j = 0; j < frames.size(); j++) {
+            int counter = 0;
+            for (int i = 0; i < 4; ++i) {
+                if (abs(frames[j].four_points[i].x - 1.0) < 1e-6) {
+                    counter++;
+                }
+            }
+            if (counter == 2) {
+                // проверка, что это не треугольник.
+                if (frames[j].four_points[1] != frames[j].four_points[2] && frames[j].four_points[2] != frames[j].four_points[3] && frames[j].four_points[3] != frames[j].four_points[4]
+                    && frames[j].four_points[4] != frames[j].four_points[1] && frames[j].four_points[2] != frames[j].four_points[4] && frames[j].four_points[1] != frames[j].four_points[3]) {
+                    if (frames[j].norm.y > 0)
+                        A[i * full_size + j] = 1.0; // на линии отрыва сверху
+                    else if (frames[j].norm.y < 0)
+                        A[i * full_size + j] = -1.0; // на линии отрыва снизу
+                    else
+                        A[i * full_size + j] = 0.0;  // на линии отрыва с 0 y нормалью, такого быть не должно, но на всякий
+                }
+                else
+                    A[i * full_size + j] = 0.0; // на линии отрыва треугольник
+            }
+            else
+                A[i * full_size + j] = 0.0;  // не на линии отрыва
+        }
+    }
+    for (int i = 0; i < frames.size(); i++) { // в следе нет треугольников, поэтому без проверки
+        for (int j = frames.size(); j < full_size - 1; j++) {
+            A[i * full_size + j] = DotProd_Point(Bio_Savar(frames[i].center, frames[j].four_points[1], frames[j].four_points[2]), frames[i].norm) +
+                DotProd_Point(Bio_Savar(frames[i].center, frames[j].four_points[2], frames[j].four_points[3]), frames[i].norm) +
+                DotProd_Point(Bio_Savar(frames[i].center, frames[j].four_points[3], frames[j].four_points[4]), frames[i].norm) +
+                DotProd_Point(Bio_Savar(frames[i].center, frames[j].four_points[4], frames[j].four_points[1]), frames[i].norm);
+        }
 
+    }
+    for (int i = frames.size(); i < full_size - 1; i++) {
+        for (int j = frames.size(); j < full_size - 1; j++) {
+            if (i == j)
+                A[i * full_size + j] = 1.0;
+            else
+                A[i * full_size + j] = 0.0;
+        }
+    }
+    for (int j = 0; j < frames.size(); j++) {
+        A[full_size * (full_size - 1) + j] = frames[j].square;
+    }
+    for (int j = frames.size(); j < full_size - 1; j++) {
+        A[full_size * full_size + j] = 0.0;
+    }
+    A[full_size * (full_size - 1) + (full_size - 1)] = 0.0;
+    for (int i = 0; i < frames.size(); i++) {
+        A[i * full_size + (full_size - 1)] = 1.0;
+    }
+    for (int i = frames.size(); i < full_size - 1; i++) {
+        A[i * full_size + (full_size - 1)] = 0.0;
+    }
+
+    for (int i = 0; i < frames.size(); i++)
+        B[i] = DotProd_Point(W_st, frames[i].norm);
+    for (int i = frames.size(); i < full_size - 1; i++)
+        B[i] = 0.0;
+    B[full_size] = 0.0;
+
+}
 
 int main() {
     // srand(time(0));

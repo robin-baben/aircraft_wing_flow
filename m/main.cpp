@@ -34,10 +34,11 @@ void init(
     W_st.x = cos(alpha) * cos(beta);
     W_st.y = sin(alpha) * cos(beta);
     W_st.z = sin(beta);
-    
     std::ifstream in(path); // окрываем файл для чтения
     if (in.is_open())
     {
+        
+        
         while (std::getline(in, line)) {
             std::istringstream ss(line);
             ss >> x1 >> y1 >> z1 >> x2 >> y2 >> z2 >> x3 >> y3 >> z3 >> x4 >> y4 >> z4;
@@ -46,38 +47,34 @@ void init(
             Point3D C(x3, y3, z3);
             Point3D D(x4, y4, z4);
             vector<Point3D> vec_points{A, B, C, D};
-            // cout << A << B << C << D;
-            frames.push_back(Frame(A, B, C, D));
+            Frame v(vec_points);
+            frames.push_back(v);
 
-            vector<Point3D> frame_on_trace;
-            bool flag = true;
-            int counter = 0;
-            for (int i = 0; i < 4; ++i) {
-                if (abs(vec_points[i].x - 1.0) < 1e-6) {
-                    if(flag) { // тут флаг, чтобы по направлению обхода закинуть точки
-                        frame_on_trace.push_back(Point3D(vec_points[i].x + par, vec_points[i].y, vec_points[i].z));
-                        frame_on_trace.push_back(vec_points[i]);
-                    } else {
-                        frame_on_trace.push_back(vec_points[i]);
-                        frame_on_trace.push_back(Point3D(vec_points[i].x + par, vec_points[i].y, vec_points[i].z));
+            if (!frames.back().triangle) {
+                
+                vector<Point3D> frame_on_trace;
+                bool flag = false;
+                for (int i = 0; i < 4; ++i) {
+                    if (fabs(vec_points[i].x - 1.0) < 1e-6) {
+                        if(flag) { // тут флаг, чтобы по направлению обхода закинуть точки
+                            frame_on_trace.push_back(Point3D(vec_points[i].x + par, vec_points[i].y, vec_points[i].z));
+                            frame_on_trace.push_back(vec_points[i]);
+                        } else {
+                            frame_on_trace.push_back(vec_points[i]);
+                            frame_on_trace.push_back(Point3D(vec_points[i].x + par, vec_points[i].y, vec_points[i].z));
+                        }
+                        flag = true;
                     }
-                    counter++;
-                    flag = true;
                 }
-            }
-
-            if (counter== 2) {
-                // проверка, что это не треугольник == что [0] и [2] точки не совпадают
-                if (frame_on_trace[0] != frame_on_trace[2]) {
-                    sled.push_back(Frame(frame_on_trace[0], frame_on_trace[1], frame_on_trace[2], frame_on_trace[3]));
+                if (flag) {
+                    sled.push_back(Frame(frame_on_trace));
                 }
-           
             }
         }
 
         // for (int i=0; i<sled.size(); ++i){
         //     for(int j=0; j<4; ++j){
-        //         cout << sled[i].four_points[j];
+        //         cout << sled[i].points[j];
         //     }
         //     cout << endl;
         // }
@@ -91,27 +88,27 @@ void Fill_matrix(double* A, double* B, Point3D& W_st, vector<Frame>& frames, vec
     int full_size = frames.size() + sled.size() + 1;
     for (int i = 0; i < frames.size(); i++) {
         for (int j = 0; j < frames.size(); j++) {
-            if (frames[j].four_points[1] != frames[j].four_points[2] && frames[j].four_points[2] != frames[j].four_points[3] && frames[j].four_points[3] != frames[j].four_points[4]
-                && frames[j].four_points[4] != frames[j].four_points[1] && frames[j].four_points[2] != frames[j].four_points[4] && frames[j].four_points[1] != frames[j].four_points[3]) {
-                A[i * full_size + j] = DotProd_Point(Bio_Savar(frames[i].center, frames[j].four_points[1], frames[j].four_points[2]), frames[i].norm) +
-                    DotProd_Point(Bio_Savar(frames[i].center, frames[j].four_points[2], frames[j].four_points[3]), frames[i].norm) +
-                    DotProd_Point(Bio_Savar(frames[i].center, frames[j].four_points[3], frames[j].four_points[4]), frames[i].norm) +
-                    DotProd_Point(Bio_Savar(frames[i].center, frames[j].four_points[4], frames[j].four_points[1]), frames[i].norm);
+            if (frames[j].points[1] != frames[j].points[2] && frames[j].points[2] != frames[j].points[3] && frames[j].points[3] != frames[j].points[4]
+                && frames[j].points[4] != frames[j].points[1] && frames[j].points[2] != frames[j].points[4] && frames[j].points[1] != frames[j].points[3]) {
+                A[i + full_size *j] = DotProd_Point(Bio_Savar(frames[i].center, frames[j].points[1], frames[j].points[2]), frames[i].norm) +
+                    DotProd_Point(Bio_Savar(frames[i].center, frames[j].points[2], frames[j].points[3]), frames[i].norm) +
+                    DotProd_Point(Bio_Savar(frames[i].center, frames[j].points[3], frames[j].points[4]), frames[i].norm) +
+                    DotProd_Point(Bio_Savar(frames[i].center, frames[j].points[4], frames[j].points[1]), frames[i].norm);
             }
-            else if (frames[j].four_points[1] == frames[j].four_points[2] || frames[j].four_points[1] == frames[j].four_points[3]) {
-                A[i * full_size + j] = DotProd_Point(Bio_Savar(frames[i].center, frames[j].four_points[2], frames[j].four_points[3]), frames[i].norm) +
-                    DotProd_Point(Bio_Savar(frames[i].center, frames[j].four_points[3], frames[j].four_points[4]), frames[i].norm) +
-                    DotProd_Point(Bio_Savar(frames[i].center, frames[j].four_points[4], frames[j].four_points[2]), frames[i].norm);
+            else if (frames[j].points[1] == frames[j].points[2] || frames[j].points[1] == frames[j].points[3]) {
+                A[i + full_size*j] = DotProd_Point(Bio_Savar(frames[i].center, frames[j].points[2], frames[j].points[3]), frames[i].norm) +
+                    DotProd_Point(Bio_Savar(frames[i].center, frames[j].points[3], frames[j].points[4]), frames[i].norm) +
+                    DotProd_Point(Bio_Savar(frames[i].center, frames[j].points[4], frames[j].points[2]), frames[i].norm);
             }
-            else if (frames[j].four_points[2] == frames[j].four_points[3] || frames[j].four_points[2] == frames[j].four_points[4]) {
-                A[i * full_size + j] = DotProd_Point(Bio_Savar(frames[i].center, frames[j].four_points[1], frames[j].four_points[3]), frames[i].norm) +
-                    DotProd_Point(Bio_Savar(frames[i].center, frames[j].four_points[3], frames[j].four_points[4]), frames[i].norm) +
-                    DotProd_Point(Bio_Savar(frames[i].center, frames[j].four_points[4], frames[j].four_points[1]), frames[i].norm);
+            else if (frames[j].points[2] == frames[j].points[3] || frames[j].points[2] == frames[j].points[4]) {
+                A[i + full_size * j] = DotProd_Point(Bio_Savar(frames[i].center, frames[j].points[1], frames[j].points[3]), frames[i].norm) +
+                    DotProd_Point(Bio_Savar(frames[i].center, frames[j].points[3], frames[j].points[4]), frames[i].norm) +
+                    DotProd_Point(Bio_Savar(frames[i].center, frames[j].points[4], frames[j].points[1]), frames[i].norm);
             }
-            else if (frames[j].four_points[3] == frames[j].four_points[4] || frames[j].four_points[4] == frames[j].four_points[1]) {
-                A[i * full_size + j] = DotProd_Point(Bio_Savar(frames[i].center, frames[j].four_points[1], frames[j].four_points[2]), frames[i].norm) +
-                    DotProd_Point(Bio_Savar(frames[i].center, frames[j].four_points[2], frames[j].four_points[3]), frames[i].norm) +
-                    DotProd_Point(Bio_Savar(frames[i].center, frames[j].four_points[3], frames[j].four_points[1]), frames[i].norm);
+            else if (frames[j].points[3] == frames[j].points[4] || frames[j].points[4] == frames[j].points[1]) {
+                A[i + full_size * j] = DotProd_Point(Bio_Savar(frames[i].center, frames[j].points[1], frames[j].points[2]), frames[i].norm) +
+                    DotProd_Point(Bio_Savar(frames[i].center, frames[j].points[2], frames[j].points[3]), frames[i].norm) +
+                    DotProd_Point(Bio_Savar(frames[i].center, frames[j].points[3], frames[j].points[1]), frames[i].norm);
             }
         }
     }
@@ -119,14 +116,14 @@ void Fill_matrix(double* A, double* B, Point3D& W_st, vector<Frame>& frames, vec
         for (int j = 0; j < frames.size(); j++) {
             int counter = 0;
             for (int i = 0; i < 4; ++i) {
-                if (abs(frames[j].four_points[i].x - 1.0) < 1e-6) {
+                if (abs(frames[j].points[i].x - 1.0) < 1e-6) {
                     counter++;
                 }
             }
             if (counter == 2) {
                 // проверка, что это не треугольник.
-                if (frames[j].four_points[1] != frames[j].four_points[2] && frames[j].four_points[2] != frames[j].four_points[3] && frames[j].four_points[3] != frames[j].four_points[4]
-                    && frames[j].four_points[4] != frames[j].four_points[1] && frames[j].four_points[2] != frames[j].four_points[4] && frames[j].four_points[1] != frames[j].four_points[3]) {
+                if (frames[j].points[1] != frames[j].points[2] && frames[j].points[2] != frames[j].points[3] && frames[j].points[3] != frames[j].points[4]
+                    && frames[j].points[4] != frames[j].points[1] && frames[j].points[2] != frames[j].points[4] && frames[j].points[1] != frames[j].points[3]) {
                     if (frames[j].norm.y > 0)
                         A[i * full_size + j] = 1.0; // на линии отрыва сверху
                     else if (frames[j].norm.y < 0)
@@ -143,10 +140,10 @@ void Fill_matrix(double* A, double* B, Point3D& W_st, vector<Frame>& frames, vec
     }
     for (int i = 0; i < frames.size(); i++) { // в следе нет треугольников, поэтому без проверки
         for (int j = frames.size(); j < full_size - 1; j++) {
-            A[i * full_size + j] = DotProd_Point(Bio_Savar(frames[i].center, frames[j].four_points[1], frames[j].four_points[2]), frames[i].norm) +
-                DotProd_Point(Bio_Savar(frames[i].center, frames[j].four_points[2], frames[j].four_points[3]), frames[i].norm) +
-                DotProd_Point(Bio_Savar(frames[i].center, frames[j].four_points[3], frames[j].four_points[4]), frames[i].norm) +
-                DotProd_Point(Bio_Savar(frames[i].center, frames[j].four_points[4], frames[j].four_points[1]), frames[i].norm);
+            A[i * full_size + j] = DotProd_Point(Bio_Savar(frames[i].center, frames[j].points[1], frames[j].points[2]), frames[i].norm) +
+                DotProd_Point(Bio_Savar(frames[i].center, frames[j].points[2], frames[j].points[3]), frames[i].norm) +
+                DotProd_Point(Bio_Savar(frames[i].center, frames[j].points[3], frames[j].points[4]), frames[i].norm) +
+                DotProd_Point(Bio_Savar(frames[i].center, frames[j].points[4], frames[j].points[1]), frames[i].norm);
         }
 
     }
@@ -228,26 +225,28 @@ int main() {
     //     free(b2);
     //     free(Ipvt);
     // }
-    // Point3D P1(1.0, 0.0, 0.0);
-    // Point3D P2(1.0, 0.0, 1.0);
-    // Point3D P3(0.0, 0.0, 1.0);
-    // Point3D P4(0.0, 0.0, 0.0);
+    Point3D P1(1.0, 0.0, 0.0);
+    Point3D P2(1.0, 0.0, 1.0);
+    Point3D P3(0.0, 0.0, 1.0);
+    Point3D P4(0.0, 0.0, 0.0);
+    vector<Point3D> p = {P1, P2, P3, P4}; 
+
     
-    // Frame frame1 (P1, P2, P3, P4);
+    
+    // Frame frame1(p);
+    // cout << frame1.triangle << endl;
 
     vector<Frame> frames;
     vector<Frame> sled;
     Point3D W_st;
     
     double par = 10.0;
+
+    //
     init("wing_10_20.dat", frames, sled, par, W_st);
 
-
-    cout << frames[0].norm << endl;
-    cout << frames[0].square << endl;
-
-
-
+    cout << size(frames) << endl;
+    cout << size(sled) << endl;
 
     // vector<Frame> frames;
     // vector<int> up_ind;

@@ -36,11 +36,11 @@ double abs(const Point3D& P) {
 }
 
 bool operator==(const Point3D& P1, const Point3D& P2) {
-    return ( (P1.x-P2.x) < 1e-14 && (P1.y - P2.y) < 1e-14 && (P1.z - P2.z) < 1e-14);
+    return ( fabs(P1.x-P2.x) < 1e-6 && fabs(P1.y - P2.y) < 1e-6 && fabs(P1.z - P2.z) < 1e-6);
 }
 
 bool operator!=(const Point3D& P1, const Point3D& P2) {
-    return ( (P1.x-P2.x) > 1e-14 || (P1.y - P2.y) > 1e-14 || (P1.z - P2.z) > 1e-14);
+    return ( fabs(P1.x-P2.x) > 1e-6 || fabs(P1.y - P2.y) > 1e-6 || fabs(P1.z - P2.z) > 1e-6);
 }
 
 double DotProd_Point(const Point3D& P1, const Point3D& P2) { return P1.x * P2.x + P1.y * P2.y + P1.z * P2.z; }

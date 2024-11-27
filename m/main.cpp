@@ -88,30 +88,19 @@ void Fill_matrix(double* A, double* B, Point3D& W_st, vector<Frame>& frames, vec
     int full_size = frames.size() + sled.size() + 1;
     for (int i = 0; i < frames.size(); i++) {
         for (int j = 0; j < frames.size(); j++) {
-            if (frames[j].points[1] != frames[j].points[2] && frames[j].points[2] != frames[j].points[3] && frames[j].points[3] != frames[j].points[4]
-                && frames[j].points[4] != frames[j].points[1] && frames[j].points[2] != frames[j].points[4] && frames[j].points[1] != frames[j].points[3]) {
-                A[i + full_size *j] = DotProd_Point(Bio_Savar(frames[i].center, frames[j].points[1], frames[j].points[2]), frames[i].norm) +
+            if (!frames[j].triangle) {
+                A[i + full_size *j] = DotProd_Point(Bio_Savar(frames[i].center, frames[j].points[0], frames[j].points[1]), frames[i].norm) +
+                    DotProd_Point(Bio_Savar(frames[i].center, frames[j].points[1], frames[j].points[2]), frames[i].norm) +
                     DotProd_Point(Bio_Savar(frames[i].center, frames[j].points[2], frames[j].points[3]), frames[i].norm) +
-                    DotProd_Point(Bio_Savar(frames[i].center, frames[j].points[3], frames[j].points[4]), frames[i].norm) +
-                    DotProd_Point(Bio_Savar(frames[i].center, frames[j].points[4], frames[j].points[1]), frames[i].norm);
-            }
-            else if (frames[j].points[1] == frames[j].points[2] || frames[j].points[1] == frames[j].points[3]) {
-                A[i + full_size*j] = DotProd_Point(Bio_Savar(frames[i].center, frames[j].points[2], frames[j].points[3]), frames[i].norm) +
-                    DotProd_Point(Bio_Savar(frames[i].center, frames[j].points[3], frames[j].points[4]), frames[i].norm) +
-                    DotProd_Point(Bio_Savar(frames[i].center, frames[j].points[4], frames[j].points[2]), frames[i].norm);
-            }
-            else if (frames[j].points[2] == frames[j].points[3] || frames[j].points[2] == frames[j].points[4]) {
-                A[i + full_size * j] = DotProd_Point(Bio_Savar(frames[i].center, frames[j].points[1], frames[j].points[3]), frames[i].norm) +
-                    DotProd_Point(Bio_Savar(frames[i].center, frames[j].points[3], frames[j].points[4]), frames[i].norm) +
-                    DotProd_Point(Bio_Savar(frames[i].center, frames[j].points[4], frames[j].points[1]), frames[i].norm);
-            }
-            else if (frames[j].points[3] == frames[j].points[4] || frames[j].points[4] == frames[j].points[1]) {
-                A[i + full_size * j] = DotProd_Point(Bio_Savar(frames[i].center, frames[j].points[1], frames[j].points[2]), frames[i].norm) +
-                    DotProd_Point(Bio_Savar(frames[i].center, frames[j].points[2], frames[j].points[3]), frames[i].norm) +
-                    DotProd_Point(Bio_Savar(frames[i].center, frames[j].points[3], frames[j].points[1]), frames[i].norm);
+                    DotProd_Point(Bio_Savar(frames[i].center, frames[j].points[3], frames[j].points[0]), frames[i].norm);
+            } else {
+                A[i + full_size * j] = DotProd_Point(Bio_Savar(frames[i].center, frames[j].points[0], frames[j].points[1]), frames[i].norm) +
+                    DotProd_Point(Bio_Savar(frames[i].center, frames[j].points[1], frames[j].points[2]), frames[i].norm) +
+                    DotProd_Point(Bio_Savar(frames[i].center, frames[j].points[2], frames[j].points[0]), frames[i].norm);
             }
         }
-    }
+    } //ВОТ ДО СЮДА ДОШЕЛ
+
     for (int i = frames.size(); i < full_size - 1; i++) {
         for (int j = 0; j < frames.size(); j++) {
             int counter = 0;

@@ -2,6 +2,7 @@
 #define __frame_h__
 
 #include <vector>
+#include <algorithm>
 
 #include "point3D.h"
 
@@ -14,6 +15,7 @@ public:
     Point3D norm;
     Point3D center;
     bool triangle;
+    int ind; // индекс ячейки в сетке
 
     Frame() {};
 
@@ -21,5 +23,7 @@ public:
 
     Frame(const vector<Point3D>& points);
 };
+
+double max_z(Frame const& f);
 
 #endif

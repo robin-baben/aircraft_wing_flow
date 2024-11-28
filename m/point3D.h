@@ -44,4 +44,6 @@ Point3D VecProd_Point(const Point3D& P1, const Point3D& P2);
 
 Point3D Bio_Savar(const Point3D& X, const Point3D& P1, const Point3D& P2);
 
+double max_z(Point3D const& P);
+
 #endif

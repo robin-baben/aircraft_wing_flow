@@ -2,6 +2,7 @@
 #include <cmath>
 
 #include <vector>
+#include <algorithm>
 
 
 #include "point3D.h"

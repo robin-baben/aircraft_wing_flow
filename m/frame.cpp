@@ -1,4 +1,5 @@
 #include <vector>
+#include <algorithm>
 
 
 #include "point3D.h"
@@ -53,4 +54,12 @@ Frame::Frame(const vector<Point3D>& p) {
     } else {
         this->center = (points[0] + points[1] + points[2] + points[3]) / 4;
     }
+}
+
+double max_z(Frame const& f) {
+    vector<double> zs;
+    for (Point3D p : f.points) {
+        zs.push_back(p.z);
+    }
+    return *std::max_element(zs.begin(), zs.end());
 }

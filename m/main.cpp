@@ -57,7 +57,7 @@ void init(
                 vector<Point3D> frame_on_trace;
                 bool flag = false;
                 for (int i = 0; i < 4; ++i) {
-                    if (fabs(vec_points[i].x - 1.0) < 1e-6) {
+                    if (fabs(vec_points[i].x - 1.0) < 1e-10) {
                         if(flag) { // тут флаг, чтобы по направлению обхода закинуть точки
                             frame_on_trace.push_back(Point3D(vec_points[i].x + par, vec_points[i].y, vec_points[i].z));
                             frame_on_trace.push_back(vec_points[i]);
@@ -74,7 +74,7 @@ void init(
                 }
             }
         }
-        // Нигеры пидоры
+
         // for (int i=0; i<sled.size(); ++i){
         //     for(int j=0; j<4; ++j){
         //         cout << sled[i].points[j];
@@ -86,16 +86,11 @@ void init(
     in.close();     // закрываем файл
 }
 
-void Fill_matrix(double* A, double* B, Point3D& W_st, vector<Frame>& frames, vector<Frame>& sled, vector<int>& sled_indexes)
+void fill_matrix(double* A, double* b, Point3D& W_st, vector<Frame>& frames, vector<Frame>& sled, vector<int>& sled_indexes)
 {
+    
     int full_size = frames.size() + sled.size() + 1;
     //заполним всю матрицу и весь вектор нулями, можно при инициализации сделать, наверное
-    for (int i =0; i < full_size; ++i) {
-        for(int j =0; j < full_size; ++j) {
-            A[i + full_size * j] = 0.0;
-        }
-        B[i] = 0.0;
-    }
 
     for (int i = 0; i < frames.size(); i++) {
         for (int j = 0; j < frames.size(); j++) {
@@ -110,9 +105,10 @@ void Fill_matrix(double* A, double* B, Point3D& W_st, vector<Frame>& frames, vec
                     DotProd_Point(Bio_Savar(frames[i].center, frames[j].points[2], frames[j].points[0]), frames[i].norm);
             }
         }
-    } //ВОТ ДО СЮДА ДОШЕЛ
+    }
+    
 
-    for (int i = frames.size(); i < full_size - 1; i++) {
+    for (int i = frames.size(); i < full_size - 1; i++) { // вот здесь непрпавильно, потому что в следе в 2 раза больше ячеек, надо исправить инициализацию
         for (int j : sled_indexes) {
             if (!frames[j].triangle) {
                     if (frames[j].norm.y > 0)
@@ -122,16 +118,18 @@ void Fill_matrix(double* A, double* B, Point3D& W_st, vector<Frame>& frames, vec
                 }
         }
     }
+    //cout << 444 << endl;
 
     for (int i = 0; i < frames.size(); i++) { // в следе нет треугольников, поэтому без проверки
         for (int j = frames.size(); j < full_size - 1; j++) {
-            A[i + full_size * j] = DotProd_Point(Bio_Savar(frames[i].center, frames[j].points[0], frames[j].points[1]), frames[i].norm) +
-                DotProd_Point(Bio_Savar(frames[i].center, frames[j].points[1], frames[j].points[2]), frames[i].norm) +
-                DotProd_Point(Bio_Savar(frames[i].center, frames[j].points[2], frames[j].points[3]), frames[i].norm) +
-                DotProd_Point(Bio_Savar(frames[i].center, frames[j].points[3], frames[j].points[0]), frames[i].norm);
+            A[i + full_size * j] = DotProd_Point(Bio_Savar(frames[i].center, sled[j].points[0], sled[j].points[1]), frames[i].norm) +
+                DotProd_Point(Bio_Savar(frames[i].center, sled[j].points[1], sled[j].points[2]), frames[i].norm) +
+                DotProd_Point(Bio_Savar(frames[i].center, sled[j].points[2], sled[j].points[3]), frames[i].norm) +
+                DotProd_Point(Bio_Savar(frames[i].center, sled[j].points[3], sled[j].points[0]), frames[i].norm);
         }
 
     }
+    //cout << 555 << endl;
 
     for (int i = frames.size(); i < full_size - 1; i++) {
         for (int j = frames.size(); j < full_size - 1; j++) {
@@ -139,10 +137,12 @@ void Fill_matrix(double* A, double* B, Point3D& W_st, vector<Frame>& frames, vec
                 A[i + full_size * j] = 1.0;
         }
     }
+    //cout << 666 << endl;
 
     for (int j = 0; j < frames.size(); j++) { // поменять, для правильного заполнения строк, и правильными ли значениями заполняем
         A[(full_size - 1) + full_size * j] = frames[j].square;
     }
+    //cout << 777 << endl;
 
     // for (int j = frames.size(); j < full_size - 1; j++) { уже забили нулями
     //     A[full_size * full_size + j] = 0.0;
@@ -152,16 +152,20 @@ void Fill_matrix(double* A, double* B, Point3D& W_st, vector<Frame>& frames, vec
     for (int i = 0; i < frames.size(); i++) { //самый правый столбец матрицы
         A[i + full_size * (full_size - 1)] = 1.0;
     }
+    //cout << 888 << endl;
 
     // for (int i = frames.size(); i < full_size - 1; i++) {
     //     A[i * full_size + (full_size - 1)] = 0.0;
     // }
 
     for (int i = 0; i < frames.size(); i++)
-        B[i] = DotProd_Point(W_st, frames[i].norm);
+        b[i] = DotProd_Point(W_st, frames[i].norm);
+
     // for (int i = frames.size(); i < full_size - 1; i++)
     //     B[i] = 0.0;
     // B[full_size] = 0.0;
+
+    //cout << 999 << endl;
 
 }
 
@@ -236,6 +240,20 @@ int main() {
 
     cout << size(frames) << endl;
     cout << size(sled) << endl;
+
+    // for (auto f : sled) {
+    //     for (Point3D p : f.points) {
+    //         cout << p << ' ';
+    //     }
+    //     cout << endl;
+    // }
+    // cout << endl;
+
+    int full_size = frames.size() + sled.size() + 1;
+    double* A = (double*) calloc(full_size*full_size, sizeof(double));
+    double* b = (double*) calloc(full_size, sizeof(double));
+
+    //fill_matrix(A, b, W_st, frames, sled, sled_indexes);
 
     // vector<Frame> frames;
     // vector<int> up_ind;

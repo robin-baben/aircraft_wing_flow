@@ -36,7 +36,7 @@ double abs(const Point3D& P) {
 }
 
 bool operator==(const Point3D& P1, const Point3D& P2) {
-    return ( fabs(P1.x-P2.x) < 1e-6 && fabs(P1.y - P2.y) < 1e-6 && fabs(P1.z - P2.z) < 1e-6);
+    return ( fabs(P1.x-P2.x) < 1e-10 && fabs(P1.y - P2.y) < 1e-10 && fabs(P1.z - P2.z) < 1e-10);
 }
 
 bool operator!=(const Point3D& P1, const Point3D& P2) {

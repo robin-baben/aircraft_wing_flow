@@ -27,9 +27,13 @@ std::ostream & operator<<(std::ostream & s, const Point3D & P);
 
 Point3D operator*(Point3D const& p, double num);
 
+Point3D operator*(double num, Point3D const& p);
+
 Point3D operator/(Point3D const& p, double num);
 
 Point3D operator+(const Point3D& P1, const Point3D& P2);
+
+void operator+=(Point3D& P1, const Point3D& P2);
 
 Point3D operator-(const Point3D& P1, const Point3D& P2);
 double abs(const Point3D& P);

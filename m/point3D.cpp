@@ -15,6 +15,10 @@ Point3D operator*(Point3D const& p, double num) {
     return Point3D(p.x * num, p.y * num, p.z * num);
 }
 
+Point3D operator*(double num, Point3D const& p) {
+    return Point3D(p.x * num, p.y * num, p.z * num);
+}
+
 Point3D operator/(Point3D const& p, double num) {
     return Point3D(p.x / num, p.y / num, p.z / num);
 }
@@ -25,7 +29,13 @@ std::ostream & operator<<(std::ostream & s, const Point3D & P){
 }
 
 Point3D operator+(Point3D const& P1, Point3D const& P2) {
-        return Point3D(P1.x + P2.x, P1.y + P2.y, P1.z + P2.z);
+    return Point3D(P1.x + P2.x, P1.y + P2.y, P1.z + P2.z);
+}
+
+void operator+=(Point3D& P1, const Point3D& P2) {
+    P1.x += P2.x;
+    P1.y += P2.y;
+    P1.z += P2.z;
 }
 
 Point3D operator-(const Point3D& P1, const Point3D& P2) {

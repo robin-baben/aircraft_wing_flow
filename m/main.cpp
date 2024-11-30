@@ -21,7 +21,7 @@ using std::vector;
 
 extern "C"
 {
-    extern void sgesv_(int* N, int* Nrhs, double* A, int* ldA, int* Ipvt, double* B, int* ldB, int* info);
+    extern void dgesv_(int* N, int* Nrhs, double* A, int* ldA, int* Ipvt, double* B, int* ldB, int* info);
 }
 
 void init(
@@ -148,10 +148,7 @@ void fill_matrix(
     }
 
     for (int i = frames.size(); i < full_size - 1; i++) {
-        for (int j = frames.size(); j < full_size - 1; j++) {
-            if (i == j)
-                A[i + full_size * j] = 1.0;
-        }
+        A[i + full_size * i] = 1.0;
     }
 
     for (int j = 0; j < frames.size(); j++) { // поменять, для правильного заполнения строк, и правильными ли значениями заполняем
@@ -163,37 +160,32 @@ void fill_matrix(
     }
 
     for (int i = 0; i < frames.size(); i++)
-        b[i] = DotProd_Point(W_st, frames[i].norm);
+        b[i] = -DotProd_Point(W_st, frames[i].norm);
 }
 
 Point3D lift_force(
     vector<Frame> frames, // ячейки крыла
     vector<double> g, //коэффициенты прибилжения
-    const double W,
-    const double p_inf,
     const double rho
 ) {
     Point3D F(0.0, 0.0, 0.0);
-
-    double q = rho * W * W / 2;
 
     for (int i = 0; i < frames.size(); ++i) {
         Point3D W;
 
         if (!frames[i].triangle) {
-                W = -1 * (Bio_Savar(frames[i].center, frames[i].points[0], frames[i].points[1])+
-                    Bio_Savar(frames[i].center, frames[i].points[1], frames[i].points[2]) +
-                    Bio_Savar(frames[i].center, frames[i].points[2], frames[i].points[3]) +
-                    Bio_Savar(frames[i].center, frames[i].points[3], frames[i].points[0])) / (4 * M_PI);
-            } else {
-                W = -1* (Bio_Savar(frames[i].center, frames[i].points[0], frames[i].points[1]) +
-                    Bio_Savar(frames[i].center, frames[i].points[1], frames[i].points[2]) +
-                    Bio_Savar(frames[i].center, frames[i].points[2], frames[i].points[0])) / (4 * M_PI);
-            }
+            W = -1 * (Bio_Savar(frames[i].center, frames[i].points[0], frames[i].points[1])+
+                Bio_Savar(frames[i].center, frames[i].points[1], frames[i].points[2]) +
+                Bio_Savar(frames[i].center, frames[i].points[2], frames[i].points[3]) +
+                Bio_Savar(frames[i].center, frames[i].points[3], frames[i].points[0])) / (4 * M_PI);
+        } else {
+            W = -1* (Bio_Savar(frames[i].center, frames[i].points[0], frames[i].points[1]) +
+                Bio_Savar(frames[i].center, frames[i].points[1], frames[i].points[2]) +
+                Bio_Savar(frames[i].center, frames[i].points[2], frames[i].points[0])) / (4 * M_PI);
+        }
 
-        double C_p = 1 - 4 * g[i] * g[i] * DotProd_Point(W, W);
-
-        F += -1 * frames[i].square * frames[i].norm * (C_p * q + p_inf);
+        cout << frames[i].square * frames[i].norm * 2 * g[i] * g[i] * DotProd_Point(W, W) * rho << endl;
+        F += frames[i].square * frames[i].norm * 2 * g[i] * g[i] * DotProd_Point(W, W) * rho;
     }
 
     return F;
@@ -206,13 +198,14 @@ int main() {
     vector<Frame> trace;
     Point3D W_st;
 
-    double alpha = 10 * M_PI / 180;
-    double beta = 10 * M_PI / 180;
+    double alpha = 10.0 * M_PI / 180;
+    double beta = 0.0;
+    double rho = 1.0;
 
     // у вектора набегающей скорости еще модуль должен быть
-    W_st.x = cos(alpha) * cos(beta);
-    W_st.y = sin(alpha) * cos(beta);
-    W_st.z = sin(beta);
+    W_st.x = 0.0; //cos(alpha) * cos(beta);
+    W_st.y = 0.0; //sin(alpha) * cos(beta);
+    W_st.z = 0.0; //sin(beta);
     
     double par = 10.0;
 
@@ -227,19 +220,70 @@ int main() {
     int full_size = frames.size() + trace.size() + 1;
     double* A = (double*) calloc(full_size*full_size, sizeof(double));
     double* b = (double*) calloc(full_size, sizeof(double));
+    
 
     fill_matrix(A, b, W_st, frames, trace, tr_neib_up, tr_neib_down);
-
     int* Ipvt = (int*) calloc(full_size, sizeof(int));
     int info;
     int Nrhs = 1;
 
-    sgesv_(&full_size, &Nrhs, A, &full_size, Ipvt, b, &full_size, &info);
+    // std::ofstream out;          // поток для записи
+    // out.open("hello.txt");      // открываем файл для записи
+    // if (out.is_open())
+    // {
+    //     for (int i = 0; i < full_size * full_size; ++i) {
+    //         out << A[i] << std::endl;
+    //     }
+    // }
+    // out.close(); 
 
-    vector<double> g;
-    for (int i = 0; i < frames.size(); ++i) {
-        g.push_back(b[i]);
+    // for (int j = 0; j < full_size; ++j) {
+    //     cout << b[j] << endl;
+    // }
+    // cout << endl;
+
+    dgesv_(&full_size, &Nrhs, A, &full_size, Ipvt, b, &full_size, &info);
+
+    for (int j = 0; j < full_size; ++j) {
+        cout << b[j] << endl;
     }
+
+    // vector<double> g;
+    // for (int i = 0; i < frames.size(); ++i) {
+    //     g.push_back(b[i]);
+    // }
+
+    //Point3D F = lift_force(frames, g, rho);
+    //cout << F.y << endl;
+    // int n = 100;
+
+    // double* A2 =(double*) calloc(n*n ,sizeof(double));
+    // double* A3 =(double*) calloc(n*n ,sizeof(double));
+    // double* b2 =(double*) calloc(n ,sizeof(double));
+    // double* b3 =(double*) calloc(n ,sizeof(double));
+
+    // for (int i = 0; i < n; i++) {
+    //     b2[i] = 1.0;
+    //     b3[i] = b2[i];
+    //     for (int j = 0; j < n; j++) {
+    //         A2[j*n+i] = 1.0*rand()/RAND_MAX;
+    //         A3[j*n+i] = A2[j*n+i];
+    //     }
+    // }
+
+
+    //dgesv_(&n, &Nrhs, A2, &n, Ipvt, b2, &n, &info);
+    // double err = 0;
+
+    // for (int i = 0; i < n; ++i) {
+    //     double rhs = 0;
+    //     for (int j = 0; j < n; ++j) {
+    //         rhs += A3[i + j*n] * b2[j];
+    //     }
+    //     err += abs(b3[i] - rhs);
+    // }
+    //cout << info << endl;
+    
 
     return 0;
 }

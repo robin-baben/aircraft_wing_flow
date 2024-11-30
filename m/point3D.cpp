@@ -68,9 +68,9 @@ Point3D VecProd_Point(Point3D const & P1, Point3D const& P2)
 Point3D Bio_Savar(const Point3D& X, const Point3D& P1, const Point3D& P2)
 {
     Point3D f;
-    Point3D f1 = VecProd_Point(P2 - P1, X - P1) / (abs(VecProd_Point(P2 - P1, X - P1)) * abs(VecProd_Point(P2 - P1, X - P1)));
-    double f2 = DotProd_Point(X - P1, P2 - P1) / abs(X - P1);
-    double f3 = DotProd_Point(X - P2, P2 - P1) / abs(X - P2);
+    Point3D f1 = VecProd_Point(P2 - P1, X - P1) / (DotProd_Point(P2 - P1, P2 - P1) * DotProd_Point(X - P1, X - P1) - DotProd_Point(P2 - P1, X - P1) * DotProd_Point(P2 - P1, X - P1));
+    double f2 = DotProd_Point(P2 - P1, X - P2) / abs(X - P2);
+    double f3 = DotProd_Point(P2 - P1, X - P1) / abs(X - P1);
 
     f = f1 * (f2 - f3);
     return f;

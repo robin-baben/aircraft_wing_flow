@@ -50,7 +50,7 @@ void init(
             vector<Point3D> vec_points{A, B, C, D};
             
             Frame v(vec_points);
-            v.ind = size(frames);
+            v.ind = size(frames)-1;
             frames.push_back(v);
 
             if (!frames.back().triangle) { //находим верхние и нижние ячейкми на линии отрыва
@@ -58,10 +58,10 @@ void init(
                     if (fabs(p.x - 1.0) < 1e-10) {
                         if (v.norm.y > 0) {
                             tr_neib_up.push_back(Frame(vec_points));
-                            tr_neib_up.back().ind = size(frames);
+                            tr_neib_up.back().ind = size(frames)-1;
                         } else {
                             tr_neib_down.push_back(Frame(vec_points));
-                            tr_neib_down.back().ind = size(frames);
+                            tr_neib_down.back().ind = size(frames)-1;
                         }
                         break;
                     }
@@ -71,6 +71,7 @@ void init(
     }
     in.close();     // закрываем файл
 }
+
 
 void init_trace(
     vector<Frame>& tr_neib_up, //массив верхних ячеек
@@ -151,7 +152,7 @@ void fill_matrix(
         A[i + full_size * i] = 1.0;
     }
 
-    for (int j = 0; j < frames.size(); j++) { // поменять, для правильного заполнения строк, и правильными ли значениями заполняем
+    for (int j = 0; j < frames.size(); j++) {
         A[(full_size - 1) + full_size * j] = frames[j].square;
     }
 
@@ -162,6 +163,49 @@ void fill_matrix(
     for (int i = 0; i < frames.size(); i++)
         b[i] = -DotProd_Point(W_st, frames[i].norm);
 }
+
+void fill_matrix_potential_flow(
+    double* A, //матрица для заполнения
+    double* b, // вектор для заполнения
+    Point3D& W_st, //вектор набегающей скорости
+    vector<Frame>& frames
+) {
+    int full_size = frames.size() + 1;
+
+    for (int i = 0; i < frames.size(); i++) {
+        for (int j = 0; j < frames.size(); j++) {
+            if (!frames[j].triangle) {
+                A[i + full_size *j] = -1 * (DotProd_Point(Bio_Savar(frames[i].center, frames[j].points[0], frames[j].points[1]), frames[i].norm) +
+                    DotProd_Point(Bio_Savar(frames[i].center, frames[j].points[1], frames[j].points[2]), frames[i].norm) +
+                    DotProd_Point(Bio_Savar(frames[i].center, frames[j].points[2], frames[j].points[3]), frames[i].norm) +
+                    DotProd_Point(Bio_Savar(frames[i].center, frames[j].points[3], frames[j].points[0]), frames[i].norm)) / (4 * M_PI);
+            } else {
+                A[i + full_size * j] = -1* (DotProd_Point(Bio_Savar(frames[i].center, frames[j].points[0], frames[j].points[1]), frames[i].norm) +
+                    DotProd_Point(Bio_Savar(frames[i].center, frames[j].points[1], frames[j].points[2]), frames[i].norm) +
+                    DotProd_Point(Bio_Savar(frames[i].center, frames[j].points[2], frames[j].points[0]), frames[i].norm)) / (4 * M_PI);
+            }
+        }
+    }
+
+    for (int i = 0; i < frames.size(); i++) { //самый правый столбец матрицы
+        A[i + full_size * (full_size - 1)] = 1.0;
+    }
+
+    for (int j = 0; j < frames.size(); j++) { //последняя строка
+        A[(full_size - 1) + full_size * j] = frames[j].square;
+    }
+
+    for (int i = 0; i < frames.size(); i++)
+        b[i] = -DotProd_Point(W_st, frames[i].norm);
+}
+
+double square_surface(const std::vector<Frame> &frames) {
+    double square = 0.0;
+    for (Frame f : frames) {
+            square += f.square;
+    }
+    return square;
+} 
 
 Point3D lift_force(
     vector<Frame> frames, // ячейки крыла
@@ -203,9 +247,9 @@ int main() {
     double rho = 1.0;
 
     // у вектора набегающей скорости еще модуль должен быть
-    W_st.x = 0.0; //cos(alpha) * cos(beta);
-    W_st.y = 0.0; //sin(alpha) * cos(beta);
-    W_st.z = 0.0; //sin(beta);
+    W_st.x = cos(alpha) * cos(beta);
+    W_st.y = sin(alpha) * cos(beta);
+    W_st.z = sin(beta);
     
     double par = 10.0;
 
@@ -213,9 +257,27 @@ int main() {
 
     init_trace(tr_neib_up, tr_neib_down, trace, par);
 
+    // std::ofstream out;          // поток для записи
+    // out.open("wing_10_20_trace.dat", std::ios::app);      // открываем файл для записи
+    // if (out.is_open())
+    // {
+    //     for (Frame f : trace) {
+    //         for (Point3D p : f.points) {
+    //             out << p << " ";
+    //         }
+    //         out << endl;
+    //     }
+    // }
+    // out.close();
+    // for (Frame f : tr_neib_down) {
+    //     cout << f.ind << ' ';
+    // }
+    // cout << endl;
+
     // cout << size(frames) << endl;
     // cout << size(tr_neib_up) << endl;
     // cout << size(tr_neib_down) << endl;
+    // cout << trace.size() << endl;
 
     int full_size = frames.size() + trace.size() + 1;
     double* A = (double*) calloc(full_size*full_size, sizeof(double));
@@ -223,9 +285,12 @@ int main() {
     
 
     fill_matrix(A, b, W_st, frames, trace, tr_neib_up, tr_neib_down);
+    // fill_matrix_potential_flow(A, b, W_st, frames);
     int* Ipvt = (int*) calloc(full_size, sizeof(int));
     int info;
     int Nrhs = 1;
+
+    // cout << square_surface(frames) << endl;
 
     // std::ofstream out;          // поток для записи
     // out.open("hello.txt");      // открываем файл для записи
@@ -235,18 +300,36 @@ int main() {
     //         out << A[i] << std::endl;
     //     }
     // }
-    // out.close(); 
+    // out.close();
+
+    // double sum = 0.0;
+    // for (int i = 0; i < frames.size(); ++i) {
+    //     double sum1 = 0.0;
+    //     for (int j = 0; j < frames.size(); ++j) {
+    //         sum1 += A[j*full_size];
+            
+    //     }
+    //     sum += sum1;
+    //     cout << fabs(sum1) << endl;
+    // }
+    
+    //cout << sum << endl;
+
+    // dgesv_(&full_size, &Nrhs, A, &full_size, Ipvt, b, &full_size, &info);
 
     // for (int j = 0; j < full_size; ++j) {
     //     cout << b[j] << endl;
     // }
-    // cout << endl;
-
-    dgesv_(&full_size, &Nrhs, A, &full_size, Ipvt, b, &full_size, &info);
-
-    for (int j = 0; j < full_size; ++j) {
-        cout << b[j] << endl;
-    }
+    // std::ofstream out;          // поток для записи
+    // out.open("hello.txt");      // открываем файл для записи
+    // if (out.is_open())
+    // {   
+    //     out << full_size << endl;
+    //     for (int i = 0; i < full_size; ++i) {
+    //         out << b[i] << std::endl;
+    //     }
+    // }
+    // out.close();
 
     // vector<double> g;
     // for (int i = 0; i < frames.size(); ++i) {

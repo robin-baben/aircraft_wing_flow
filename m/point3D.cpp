@@ -24,7 +24,7 @@ Point3D operator/(Point3D const& p, double num) {
 }
 
 std::ostream & operator<<(std::ostream & s, const Point3D & P){
-    s << '(' << P.x << ", " << P.y << ", " << P.z << ')';
+    s <<  P.x << " " << P.y << " " << P.z;
     return s;
 }
 

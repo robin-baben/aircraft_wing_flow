@@ -271,6 +271,38 @@ void write_answer_to_file(
     out.close();
 }
 
+void write_answer_to_file_point(
+    const std::string path,
+    const vector<Point3D> velocity) 
+{
+    std::ofstream out;          // поток для записи
+    out.open(path);      // открываем файл для записи
+    if (out.is_open())
+    {   
+        // out << size << endl;
+        for (int i = 0; i < velocity.size(); ++i) 
+        {
+            out << velocity[i] << std::endl;
+        }
+    }
+    out.close();
+}
+
+void write_answer_to_file_double_vec(
+    const std::string path,
+    const vector<double> doubles_vec) 
+{
+    std::ofstream out;          // поток для записи
+    out.open(path);      // открываем файл для записи
+    if (out.is_open())
+    {   
+        out << doubles_vec.size() << endl;
+        for (int i = 0; i < doubles_vec.size(); ++i)
+            out << doubles_vec[i] << std::endl;
+    }
+    out.close();
+}
+
 void print_matrix(
     const double* A,
     int size
@@ -287,6 +319,64 @@ void print_matrix(
         cout << endl;
     }
 }
+
+// Фнукция поиска вектора скоростей в точках коллокациях
+vector<Point3D> Velocity_surface(const Point3D& W_start, const vector<double>& g, const vector<Frame>& frames, const vector<Frame>& trace)
+{
+    vector<Point3D> W;
+    
+    for(int i=0; i<frames.size(); ++i)
+    {
+        Point3D part_sum{0.0, 0.0, 0.0};
+        for(int j=0; j<frames.size(); ++j)
+        {
+            if (!frames[j].triangle)
+            {
+                part_sum += (-1 * (Bio_Savar(frames[i].center, frames[j].points[0], frames[j].points[1]) +
+                                   Bio_Savar(frames[i].center, frames[j].points[1], frames[j].points[2]) +
+                                   Bio_Savar(frames[i].center, frames[j].points[2], frames[j].points[3]) +
+                                   Bio_Savar(frames[i].center, frames[j].points[3], frames[j].points[0]))  / (4 * M_PI)) * g[j];
+            } 
+            else 
+            {
+                part_sum += (-1 * (Bio_Savar(frames[i].center, frames[j].points[0], frames[j].points[1]) +
+                                   Bio_Savar(frames[i].center, frames[j].points[1], frames[j].points[2]) +
+                                   Bio_Savar(frames[i].center, frames[j].points[2], frames[j].points[0]))  / (4 * M_PI)) * g[j];
+            }
+        }
+        for(int j=0; j<trace.size(); ++j)
+        {
+            if (!frames[j].triangle)
+            {
+                part_sum += (-1 * (Bio_Savar(frames[i].center, trace[j].points[0], trace[j].points[1]) +
+                                   Bio_Savar(frames[i].center, trace[j].points[1], trace[j].points[2]) +
+                                   Bio_Savar(frames[i].center, trace[j].points[2], trace[j].points[3]) +
+                                   Bio_Savar(frames[i].center, trace[j].points[3], trace[j].points[0]))  / (4 * M_PI)) * g[frames.size() + j];
+            } 
+            else 
+            {
+                part_sum += (-1 * (Bio_Savar(frames[i].center, trace[j].points[0], trace[j].points[1]) +
+                                   Bio_Savar(frames[i].center, trace[j].points[1], trace[j].points[2]) +
+                                   Bio_Savar(frames[i].center, trace[j].points[2], trace[j].points[0]))  / (4 * M_PI)) * g[frames.size() + j];
+            }
+        }
+        W.push_back(W_start + part_sum);
+    }
+    return W;
+}
+
+vector<double> Pressure_coeff(const Point3D& W_start, const vector<Point3D>& W)
+{
+    vector<double> pressure_coeff_vec;
+
+    for(int i=0; i<W.size(); ++i)
+        pressure_coeff_vec.push_back(1 - (abs(W[i]) * abs(W[i]))/(abs(W_start) * abs(W_start)) );
+
+    return pressure_coeff_vec;
+}
+
+
+
 
 int main() {
     vector<Frame> frames;
@@ -385,6 +475,26 @@ int main() {
 
 
     dgesv_(&full_size, &Nrhs, A, &full_size, Ipvt, b, &full_size, &info);
+
+    vector<double> b_vec;
+    for(int i=0; i<full_size; ++i)
+        b_vec.push_back(b[i]); 
+
+    vector<Point3D> W = Velocity_surface(W_st, b_vec, frames, trace);
+
+
+// Ищем поле скоростей на крыле и заносим в файл.
+    // for(int i=0; i < W.size(); ++i)
+    //     cout << W[i] << endl;
+    // write_answer_to_file_point("velocity_file.gv", W);
+
+
+// Ищем коэф-ты давления на крыле и заносим в файл
+    vector<double> Cp = Pressure_coeff(W_st, W);
+    for(int i=0; i < Cp.size(); ++i)
+        cout << Cp[i] << endl;
+    write_answer_to_file_double_vec("press_coeff.txt", Cp);
+
 
     //write_answer_to_file("hello.txt", b, full_size-1);
 

@@ -70,7 +70,7 @@ Point3D Bio_Savar(const Point3D& X, const Point3D& P1, const Point3D& P2, int pa
     double h = abs(P1-P2);
     double s = (DotProd_Point(P2 - P1, P2 - P1) * DotProd_Point(X - P1, X - P1) - DotProd_Point(P2 - P1, X - P1) * DotProd_Point(P2 - P1, X - P1));
 
-    if (s < std::pow(h/10, 4)) {
+    if (s < std::pow(h/param, 4)) {
         return Point3D(0.0, 0.0, 0.0);
     }
     Point3D f;

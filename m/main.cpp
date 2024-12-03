@@ -307,6 +307,71 @@ vector<double> Pressure_coeff(const Point3D& W_inf, const vector<Point3D>& W)
     return pressure_coeff_vec;
 }
 
+Point3D Strength_coeff(const vector<double>& C_p, const vector<Frame>& frames, double wing_square=5.0)
+{
+    Point3D C_f(0.0, 0.0, 0.0);
+
+    for(int j=0; j<frames.size(); ++j)
+    {
+        C_f += -1 * C_p[j] * frames[j].norm * frames[j].square;
+    }
+    return C_f;
+}
+
+vector<Point3D> velocity_field(
+    const std::string path,
+    const vector<Frame>& frames,
+    const vector<Frame>& trace,
+    const vector<double>& g, 
+    const Point3D W_start,
+    const int BioSavarParametr,
+    const std::string output
+) {
+    vector<Point3D> velocity_field_var;
+
+    int raw_num, col_num;
+    double x, y, z;
+
+    int counter = 0;
+    std::string line;
+    std::ifstream in(path); // окрываем файл для чтения
+    std::ofstream out;          // поток для записи
+    out.open(output); //открываем файл для записи 
+    if (in.is_open() && out.is_open())
+    {
+        while (std::getline(in, line))
+        {
+            counter++;
+
+            std::istringstream ss(line);
+            if (counter == 1) {
+                ss >> raw_num >> col_num;
+                out << raw_num << ' ' << col_num << endl;
+            } else {
+                ss >> x >> y >> z;
+
+                Point3D X(x, y, z);
+                Point3D part_sum{0.0, 0.0, 0.0};
+
+                for(int j=0; j<frames.size(); ++j) {
+                    part_sum += w_sigma(X, frames[j]) * g[j];
+                }
+
+                for(int j=0; j<trace.size(); ++j) {
+                    part_sum += w_sigma(X, trace[j]) * g[frames.size() + j];
+                }
+
+                velocity_field_var.push_back(W_start + part_sum);
+                out << W_start + part_sum << endl;
+            }
+        }
+    }
+    in.close();
+    out.close();     // закрываем файл
+
+    return velocity_field_var;
+}
+
 
 int main() {
     vector<Frame> frames;
@@ -366,45 +431,12 @@ int main() {
     //     cout << Cp[i] << endl;
     write_answer_to_file_double_vec("press_coeff.txt", C_p);
 
+    vector<Point3D> velocity_field_var = velocity_field("grid.gr", frames, trace, b_vec, W_inf, 1, "velocity_field.gv");
+    cout << velocity_field_var.size() << endl;
+    for(int i=0; i < 10; ++i)
+        cout << velocity_field_var[i] << endl;
+
 
     //write_answer_to_file("hello.txt", b, full_size-1);
-
-    // vector<double> g;
-    // for (int i = 0; i < frames.size(); ++i) {
-    //     g.push_back(b[i]);
-    // }
-
-    //Point3D F = lift_force(frames, g, rho);
-    //cout << F.y << endl;
-    // int n = 100;
-
-    // double* A2 =(double*) calloc(n*n ,sizeof(double));
-    // double* A3 =(double*) calloc(n*n ,sizeof(double));
-    // double* b2 =(double*) calloc(n ,sizeof(double));
-    // double* b3 =(double*) calloc(n ,sizeof(double));
-
-    // for (int i = 0; i < n; i++) {
-    //     b2[i] = 1.0;
-    //     b3[i] = b2[i];
-    //     for (int j = 0; j < n; j++) {
-    //         A2[j*n+i] = 1.0*rand()/RAND_MAX;
-    //         A3[j*n+i] = A2[j*n+i];
-    //     }
-    // }
-
-
-    //dgesv_(&n, &Nrhs, A2, &n, Ipvt, b2, &n, &info);
-    // double err = 0;
-
-    // for (int i = 0; i < n; ++i) {
-    //     double rhs = 0;
-    //     for (int j = 0; j < n; ++j) {
-    //         rhs += A3[i + j*n] * b2[j];
-    //     }
-    //     err += abs(b3[i] - rhs);
-    // }
-    //cout << info << endl;
-    
-
     return 0;
 }

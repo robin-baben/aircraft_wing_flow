@@ -235,6 +235,59 @@ Point3D lift_force(
     return F;
 }
 
+void write_frames_to_file(
+    const std::string path,
+    const vector<Frame> &frames
+) {
+    std::ofstream out;          // поток для записи
+    out.open(path, std::ios::app);      // открываем файл для записи
+    if (out.is_open())
+    {
+        out << endl;
+        for (Frame f : frames) {
+            for (Point3D p : f.points) {
+                out << p << " ";
+            }
+            out << endl;
+        }
+    }
+    out.close();
+}
+
+void write_answer_to_file(
+    const std::string path,
+    const double* b,
+    int size
+) {
+    std::ofstream out;          // поток для записи
+    out.open(path);      // открываем файл для записи
+    if (out.is_open())
+    {   
+        out << size << endl;
+        for (int i = 0; i < size; ++i) {
+            out << b[i] << std::endl;
+        }
+    }
+    out.close();
+}
+
+void print_matrix(
+    const double* A,
+    int size
+) {
+    for(int i=0; i<size; ++i)
+    {
+        for(int j=0; j< size; ++j)
+        {
+            if (A[i + j*size] >= 0.0)
+                printf(" %.3lf ", A[i + j*size]);
+            else
+                printf("%.3lf ", A[i + j*size]);
+        }
+        cout << endl;
+    }
+}
+
 int main() {
     vector<Frame> frames;
     vector<Frame> tr_neib_up; // массив верхник ячеек соседствующих со следом, его надо дополнительно обработать
@@ -253,23 +306,39 @@ int main() {
     
     double par = 10.0;
 
-    init("wing_10_20.dat", frames, tr_neib_up, tr_neib_down); //перенести расчет W в йункцию инит, чтобы вычисленные W можно было использовать
+    init("medium_well_geom.dat", frames, tr_neib_up, tr_neib_down); //перенести расчет W в йункцию инит, чтобы вычисленные W можно было использовать
 
     init_trace(tr_neib_up, tr_neib_down, trace, par);
 
-    // std::ofstream out;          // поток для записи
-    // out.open("wing_10_20_trace.dat", std::ios::app);      // открываем файл для записи
-    // if (out.is_open())
-    // {
-    //     for (Frame f : trace) {
-    //         for (Point3D p : f.points) {
-    //             out << p << " ";
-    //         }
-    //         out << endl;
+    // cout << "squares of triangles:" << endl;
+    // for (Frame f : frames) {
+    //     if (f.triangle) {
+    //         cout << f.square << endl;
     //     }
     // }
-    // out.close();
+
+    // cout << "indxs frames with zero square:" << endl;
+    // for (Frame f : tr_neib_up) {
+    //     if (f.square < 1e-10) {
+    //         cout << f.ind << endl;
+    //     }
+    // }
+
+    // for (int i = 430; i < 460; ++i) {
+    //     cout << frames[i].norm << endl;
+    // }
+
+    // cout << endl;
+    // for (int i = 400; i < 430; ++i) {
+    //     cout << frames[i].norm << endl;
+    // }
+
+    
     // for (Frame f : tr_neib_down) {
+    //     cout << f.ind << ' ';
+    // }
+    // cout << endl;
+    // for (Frame f : tr_neib_up) {
     //     cout << f.ind << ' ';
     // }
     // cout << endl;
@@ -290,46 +359,36 @@ int main() {
     int info;
     int Nrhs = 1;
 
+    //print_matrix(A, full_size);
+    // for (int i = 0; i < full_size; ++i) {
+    //     cout << i << ": " << A[i + (full_size-2) * full_size] << endl;
+    // }
+
+    // cout << Bio_Savar(frames[31].center, trace[0].points[0], trace[0].points[1]) << endl;
+    // cout << Bio_Savar(frames[31].center, trace[0].points[1], trace[0].points[2]) << endl;
+    // cout << Bio_Savar(frames[31].center, trace[0].points[2], trace[0].points[3]) << endl;
+    // cout << Bio_Savar(frames[31].center, trace[0].points[3], trace[0].points[0]) << endl;
+
+    // cout << endl;
+
+    // cout << frames[32].center << endl;
+    // cout << frames[31].center << endl;
+    // cout << trace[0].points[2] << endl;
+    // cout << trace[0].points[3] << endl;
+
+    // cout << DotProd_Point(trace[0].points[3] - trace[0].points[2], trace[0].points[3] - trace[0].points[2]) * DotProd_Point(frames[31].center - trace[0].points[2], frames[31].center - trace[0].points[2]) << endl;
+    // cout << DotProd_Point(trace[0].points[3] - trace[0].points[2], frames[31].center - trace[0].points[2]) * DotProd_Point(trace[0].points[3] - trace[0].points[2], frames[31].center - trace[0].points[2]) << endl;
+
     // cout << square_surface(frames) << endl;
 
-    // std::ofstream out;          // поток для записи
-    // out.open("hello.txt");      // открываем файл для записи
-    // if (out.is_open())
-    // {
-    //     for (int i = 0; i < full_size * full_size; ++i) {
-    //         out << A[i] << std::endl;
-    //     }
-    // }
-    // out.close();
-
-    // double sum = 0.0;
-    // for (int i = 0; i < frames.size(); ++i) {
-    //     double sum1 = 0.0;
-    //     for (int j = 0; j < frames.size(); ++j) {
-    //         sum1 += A[j*full_size];
-            
-    //     }
-    //     sum += sum1;
-    //     cout << fabs(sum1) << endl;
-    // }
     
-    //cout << sum << endl;
 
-    // dgesv_(&full_size, &Nrhs, A, &full_size, Ipvt, b, &full_size, &info);
 
-    // for (int j = 0; j < full_size; ++j) {
-    //     cout << b[j] << endl;
-    // }
-    // std::ofstream out;          // поток для записи
-    // out.open("hello.txt");      // открываем файл для записи
-    // if (out.is_open())
-    // {   
-    //     out << full_size << endl;
-    //     for (int i = 0; i < full_size; ++i) {
-    //         out << b[i] << std::endl;
-    //     }
-    // }
-    // out.close();
+    dgesv_(&full_size, &Nrhs, A, &full_size, Ipvt, b, &full_size, &info);
+
+    for (int j = 0; j < full_size; ++j) {
+        cout << b[j] << endl;
+    }
 
     // vector<double> g;
     // for (int i = 0; i < frames.size(); ++i) {

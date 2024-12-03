@@ -26,4 +26,6 @@ public:
 
 double max_z(Frame const& f);
 
+Point3D w_sigma(const Point3D x, Frame sigma);
+
 #endif

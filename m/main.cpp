@@ -50,7 +50,7 @@ void init(
             vector<Point3D> vec_points{A, B, C, D};
             
             Frame v(vec_points);
-            v.ind = size(frames)-1;
+            v.ind = size(frames);
             frames.push_back(v);
 
             if (!frames.back().triangle) { //находим верхние и нижние ячейкми на линии отрыва
@@ -100,6 +100,7 @@ void init_trace(
         }
         if (flag) {
             trace.push_back(Frame(frame_on_trace)); // закидываем созданную ячейку в след
+            trace.back().ind = trace.size() -1;
         }
     }
 }
@@ -118,16 +119,7 @@ void fill_matrix(
 
     for (int i = 0; i < frames.size(); i++) {
         for (int j = 0; j < frames.size(); j++) {
-            if (!frames[j].triangle) {
-                A[i + full_size *j] = -1 * (DotProd_Point(Bio_Savar(frames[i].center, frames[j].points[0], frames[j].points[1]), frames[i].norm) +
-                    DotProd_Point(Bio_Savar(frames[i].center, frames[j].points[1], frames[j].points[2]), frames[i].norm) +
-                    DotProd_Point(Bio_Savar(frames[i].center, frames[j].points[2], frames[j].points[3]), frames[i].norm) +
-                    DotProd_Point(Bio_Savar(frames[i].center, frames[j].points[3], frames[j].points[0]), frames[i].norm)) / (4 * M_PI);
-            } else {
-                A[i + full_size * j] = -1* (DotProd_Point(Bio_Savar(frames[i].center, frames[j].points[0], frames[j].points[1]), frames[i].norm) +
-                    DotProd_Point(Bio_Savar(frames[i].center, frames[j].points[1], frames[j].points[2]), frames[i].norm) +
-                    DotProd_Point(Bio_Savar(frames[i].center, frames[j].points[2], frames[j].points[0]), frames[i].norm)) / (4 * M_PI);
-            }
+            A[i + full_size *j] = DotProd_Point(w_sigma(frames[i].center, frames[j]), frames[i].norm);
         }
     }
     
@@ -140,10 +132,7 @@ void fill_matrix(
 
     for (int i = 0; i < frames.size(); i++) { // в следе нет треугольников, поэтому без проверки
         for (int j = 0; j < trace.size(); j++) {
-            A[i + full_size * (j + frames.size())] = -1 *  (DotProd_Point(Bio_Savar(frames[i].center, trace[j].points[0], trace[j].points[1]), frames[i].norm) +
-                DotProd_Point(Bio_Savar(frames[i].center, trace[j].points[1], trace[j].points[2]), frames[i].norm) +
-                DotProd_Point(Bio_Savar(frames[i].center, trace[j].points[2], trace[j].points[3]), frames[i].norm) +
-                DotProd_Point(Bio_Savar(frames[i].center, trace[j].points[3], trace[j].points[0]), frames[i].norm)) / (4 * M_PI);
+            A[i + full_size * (j + frames.size())] = DotProd_Point(w_sigma(frames[i].center, trace[j]), frames[i].norm);
         }
 
     }
@@ -174,16 +163,7 @@ void fill_matrix_potential_flow(
 
     for (int i = 0; i < frames.size(); i++) {
         for (int j = 0; j < frames.size(); j++) {
-            if (!frames[j].triangle) {
-                A[i + full_size *j] = -1 * (DotProd_Point(Bio_Savar(frames[i].center, frames[j].points[0], frames[j].points[1]), frames[i].norm) +
-                    DotProd_Point(Bio_Savar(frames[i].center, frames[j].points[1], frames[j].points[2]), frames[i].norm) +
-                    DotProd_Point(Bio_Savar(frames[i].center, frames[j].points[2], frames[j].points[3]), frames[i].norm) +
-                    DotProd_Point(Bio_Savar(frames[i].center, frames[j].points[3], frames[j].points[0]), frames[i].norm)) / (4 * M_PI);
-            } else {
-                A[i + full_size * j] = -1* (DotProd_Point(Bio_Savar(frames[i].center, frames[j].points[0], frames[j].points[1]), frames[i].norm) +
-                    DotProd_Point(Bio_Savar(frames[i].center, frames[j].points[1], frames[j].points[2]), frames[i].norm) +
-                    DotProd_Point(Bio_Savar(frames[i].center, frames[j].points[2], frames[j].points[0]), frames[i].norm)) / (4 * M_PI);
-            }
+            A[i + full_size *j] = DotProd_Point(w_sigma(frames[i].center, frames[j]), frames[i].norm);
         }
     }
 
@@ -199,40 +179,14 @@ void fill_matrix_potential_flow(
         b[i] = -DotProd_Point(W_st, frames[i].norm);
 }
 
-double square_surface(const std::vector<Frame> &frames) {
+double square_surface(
+    const std::vector<Frame> &frames
+) {
     double square = 0.0;
     for (Frame f : frames) {
             square += f.square;
     }
     return square;
-} 
-
-Point3D lift_force(
-    vector<Frame> frames, // ячейки крыла
-    vector<double> g, //коэффициенты прибилжения
-    const double rho
-) {
-    Point3D F(0.0, 0.0, 0.0);
-
-    for (int i = 0; i < frames.size(); ++i) {
-        Point3D W;
-
-        if (!frames[i].triangle) {
-            W = -1 * (Bio_Savar(frames[i].center, frames[i].points[0], frames[i].points[1])+
-                Bio_Savar(frames[i].center, frames[i].points[1], frames[i].points[2]) +
-                Bio_Savar(frames[i].center, frames[i].points[2], frames[i].points[3]) +
-                Bio_Savar(frames[i].center, frames[i].points[3], frames[i].points[0])) / (4 * M_PI);
-        } else {
-            W = -1* (Bio_Savar(frames[i].center, frames[i].points[0], frames[i].points[1]) +
-                Bio_Savar(frames[i].center, frames[i].points[1], frames[i].points[2]) +
-                Bio_Savar(frames[i].center, frames[i].points[2], frames[i].points[0])) / (4 * M_PI);
-        }
-
-        cout << frames[i].square * frames[i].norm * 2 * g[i] * g[i] * DotProd_Point(W, W) * rho << endl;
-        F += frames[i].square * frames[i].norm * 2 * g[i] * g[i] * DotProd_Point(W, W) * rho;
-    }
-
-    return F;
 }
 
 void write_frames_to_file(
@@ -273,8 +227,8 @@ void write_answer_to_file(
 
 void write_answer_to_file_point(
     const std::string path,
-    const vector<Point3D> velocity) 
-{
+    const vector<Point3D> velocity
+) {
     std::ofstream out;          // поток для записи
     out.open(path);      // открываем файл для записи
     if (out.is_open())
@@ -290,8 +244,8 @@ void write_answer_to_file_point(
 
 void write_answer_to_file_double_vec(
     const std::string path,
-    const vector<double> doubles_vec) 
-{
+    const vector<double> doubles_vec
+) {
     std::ofstream out;          // поток для записи
     out.open(path);      // открываем файл для записи
     if (out.is_open())
@@ -321,61 +275,37 @@ void print_matrix(
 }
 
 // Фнукция поиска вектора скоростей в точках коллокациях
-vector<Point3D> Velocity_surface(const Point3D& W_start, const vector<double>& g, const vector<Frame>& frames, const vector<Frame>& trace)
+vector<Point3D> Velocity_surface(
+    const Point3D& W_inf, //вектор потока на бесконечности
+    const vector<double>& g, //коэфиициенты решения
+    const vector<Frame>& frames, //ячейки на крыле
+    const vector<Frame>& trace) // ячейки на следе
 {
     vector<Point3D> W;
     
-    for(int i=0; i<frames.size(); ++i)
-    {
-        Point3D part_sum{0.0, 0.0, 0.0};
-        for(int j=0; j<frames.size(); ++j)
-        {
-            if (!frames[j].triangle)
-            {
-                part_sum += (-1 * (Bio_Savar(frames[i].center, frames[j].points[0], frames[j].points[1]) +
-                                   Bio_Savar(frames[i].center, frames[j].points[1], frames[j].points[2]) +
-                                   Bio_Savar(frames[i].center, frames[j].points[2], frames[j].points[3]) +
-                                   Bio_Savar(frames[i].center, frames[j].points[3], frames[j].points[0]))  / (4 * M_PI)) * g[j];
-            } 
-            else 
-            {
-                part_sum += (-1 * (Bio_Savar(frames[i].center, frames[j].points[0], frames[j].points[1]) +
-                                   Bio_Savar(frames[i].center, frames[j].points[1], frames[j].points[2]) +
-                                   Bio_Savar(frames[i].center, frames[j].points[2], frames[j].points[0]))  / (4 * M_PI)) * g[j];
-            }
+    for(Frame f : frames) { //цикл по ячейкам крыла, откуда берем точки коллокации
+        Point3D part_sum(0.0, 0.0, 0.0);
+        for(Frame s : frames) {
+            part_sum += w_sigma(f.center, s) * g[s.ind];
         }
-        for(int j=0; j<trace.size(); ++j)
-        {
-            if (!frames[j].triangle)
-            {
-                part_sum += (-1 * (Bio_Savar(frames[i].center, trace[j].points[0], trace[j].points[1]) +
-                                   Bio_Savar(frames[i].center, trace[j].points[1], trace[j].points[2]) +
-                                   Bio_Savar(frames[i].center, trace[j].points[2], trace[j].points[3]) +
-                                   Bio_Savar(frames[i].center, trace[j].points[3], trace[j].points[0]))  / (4 * M_PI)) * g[frames.size() + j];
-            } 
-            else 
-            {
-                part_sum += (-1 * (Bio_Savar(frames[i].center, trace[j].points[0], trace[j].points[1]) +
-                                   Bio_Savar(frames[i].center, trace[j].points[1], trace[j].points[2]) +
-                                   Bio_Savar(frames[i].center, trace[j].points[2], trace[j].points[0]))  / (4 * M_PI)) * g[frames.size() + j];
-            }
+
+        for(Frame t : trace) {
+            part_sum += w_sigma(f.center, t) * g[frames.size() + t.ind];
         }
-        W.push_back(W_start + part_sum);
+        W.push_back(W_inf + part_sum);
     }
     return W;
 }
 
-vector<double> Pressure_coeff(const Point3D& W_start, const vector<Point3D>& W)
+vector<double> Pressure_coeff(const Point3D& W_inf, const vector<Point3D>& W)
 {
     vector<double> pressure_coeff_vec;
 
     for(int i=0; i<W.size(); ++i)
-        pressure_coeff_vec.push_back(1 - (abs(W[i]) * abs(W[i]))/(abs(W_start) * abs(W_start)) );
+        pressure_coeff_vec.push_back(1 - 4* (abs(W[i]) * abs(W[i]))/(abs(W_inf) * abs(W_inf)) );
 
     return pressure_coeff_vec;
 }
-
-
 
 
 int main() {
@@ -383,16 +313,16 @@ int main() {
     vector<Frame> tr_neib_up; // массив верхник ячеек соседствующих со следом, его надо дополнительно обработать
     vector<Frame> tr_neib_down; // массив ячеек соседствующих со следом, его надо дополнительно обработать
     vector<Frame> trace;
-    Point3D W_st;
+    Point3D W_inf;
 
     double alpha = 10.0 * M_PI / 180;
     double beta = 0.0;
     double rho = 1.0;
 
     // у вектора набегающей скорости еще модуль должен быть
-    W_st.x = cos(alpha) * cos(beta);
-    W_st.y = sin(alpha) * cos(beta);
-    W_st.z = sin(beta);
+    W_inf.x = cos(alpha) * cos(beta);
+    W_inf.y = sin(alpha) * cos(beta);
+    W_inf.z = sin(beta);
     
     double par = 10.0;
 
@@ -400,100 +330,41 @@ int main() {
 
     init_trace(tr_neib_up, tr_neib_down, trace, par);
 
-    // cout << "squares of triangles:" << endl;
-    // for (Frame f : frames) {
-    //     if (f.triangle) {
-    //         cout << f.square << endl;
-    //     }
-    // }
-
-    // cout << "indxs frames with zero square:" << endl;
-    // for (Frame f : tr_neib_up) {
-    //     if (f.square < 1e-10) {
-    //         cout << f.ind << endl;
-    //     }
-    // }
-
-    // for (int i = 430; i < 460; ++i) {
-    //     cout << frames[i].norm << endl;
-    // }
-
-    // cout << endl;
-    // for (int i = 400; i < 430; ++i) {
-    //     cout << frames[i].norm << endl;
-    // }
-
     
-    // for (Frame f : tr_neib_down) {
-    //     cout << f.ind << ' ';
-    // }
-    // cout << endl;
-    // for (Frame f : tr_neib_up) {
-    //     cout << f.ind << ' ';
-    // }
-    // cout << endl;
-
-    // cout << size(frames) << endl;
-    // cout << size(tr_neib_up) << endl;
-    // cout << size(tr_neib_down) << endl;
-    // cout << trace.size() << endl;
 
     int full_size = frames.size() + trace.size() + 1;
     double* A = (double*) calloc(full_size*full_size, sizeof(double));
     double* b = (double*) calloc(full_size, sizeof(double));
     
 
-    fill_matrix(A, b, W_st, frames, trace, tr_neib_up, tr_neib_down);
+    fill_matrix(A, b, W_inf, frames, trace, tr_neib_up, tr_neib_down);
     // fill_matrix_potential_flow(A, b, W_st, frames);
     int* Ipvt = (int*) calloc(full_size, sizeof(int));
     int info;
     int Nrhs = 1;
 
-    //print_matrix(A, full_size);
-    // for (int i = 0; i < full_size; ++i) {
-    //     cout << i << ": " << A[i + (full_size-2) * full_size] << endl;
-    // }
-
-    // cout << Bio_Savar(frames[31].center, trace[0].points[0], trace[0].points[1]) << endl;
-    // cout << Bio_Savar(frames[31].center, trace[0].points[1], trace[0].points[2]) << endl;
-    // cout << Bio_Savar(frames[31].center, trace[0].points[2], trace[0].points[3]) << endl;
-    // cout << Bio_Savar(frames[31].center, trace[0].points[3], trace[0].points[0]) << endl;
-
-    // cout << endl;
-
-    // cout << frames[32].center << endl;
-    // cout << frames[31].center << endl;
-    // cout << trace[0].points[2] << endl;
-    // cout << trace[0].points[3] << endl;
-
-    // cout << DotProd_Point(trace[0].points[3] - trace[0].points[2], trace[0].points[3] - trace[0].points[2]) * DotProd_Point(frames[31].center - trace[0].points[2], frames[31].center - trace[0].points[2]) << endl;
-    // cout << DotProd_Point(trace[0].points[3] - trace[0].points[2], frames[31].center - trace[0].points[2]) * DotProd_Point(trace[0].points[3] - trace[0].points[2], frames[31].center - trace[0].points[2]) << endl;
-
-    // cout << square_surface(frames) << endl;
-
-    
-
-
     dgesv_(&full_size, &Nrhs, A, &full_size, Ipvt, b, &full_size, &info);
 
+    write_answer_to_file("hello.txt", b, full_size-1);
+
     vector<double> b_vec;
-    for(int i=0; i<full_size; ++i)
+    for(int i=0; i<full_size-1; ++i) // на единицу меньше, потому что регуляризационный параметр теперь не нужен
         b_vec.push_back(b[i]); 
 
-    vector<Point3D> W = Velocity_surface(W_st, b_vec, frames, trace);
+    vector<Point3D> W = Velocity_surface(W_inf, b_vec, frames, trace);
 
 
 // Ищем поле скоростей на крыле и заносим в файл.
     // for(int i=0; i < W.size(); ++i)
     //     cout << W[i] << endl;
-    // write_answer_to_file_point("velocity_file.gv", W);
+    write_answer_to_file_point("velocity_file.gv", W);
 
 
 // Ищем коэф-ты давления на крыле и заносим в файл
-    vector<double> Cp = Pressure_coeff(W_st, W);
-    for(int i=0; i < Cp.size(); ++i)
-        cout << Cp[i] << endl;
-    write_answer_to_file_double_vec("press_coeff.txt", Cp);
+    vector<double> C_p = Pressure_coeff(W_inf, W);
+    // for(int i=0; i < Cp.size(); ++i)
+    //     cout << Cp[i] << endl;
+    write_answer_to_file_double_vec("press_coeff.txt", C_p);
 
 
     //write_answer_to_file("hello.txt", b, full_size-1);

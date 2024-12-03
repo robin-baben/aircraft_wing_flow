@@ -184,7 +184,7 @@ void init(std::string path, vector<Frame>& frames, double par) {  // vector<int>
                 }
             }
         }
-
+// print для матрицы
         for (int i=0; i<sled.size(); ++i){
             for(int j=0; j<4; ++j){
                 cout << sled[i].four_points[j];

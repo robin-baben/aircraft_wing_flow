@@ -306,7 +306,7 @@ int main() {
     
     double par = 10.0;
 
-    init("medium_well_geom.dat", frames, tr_neib_up, tr_neib_down); //перенести расчет W в йункцию инит, чтобы вычисленные W можно было использовать
+    init("wing_10_20.dat", frames, tr_neib_up, tr_neib_down); //перенести расчет W в йункцию инит, чтобы вычисленные W можно было использовать
 
     init_trace(tr_neib_up, tr_neib_down, trace, par);
 
@@ -386,9 +386,7 @@ int main() {
 
     dgesv_(&full_size, &Nrhs, A, &full_size, Ipvt, b, &full_size, &info);
 
-    for (int j = 0; j < full_size; ++j) {
-        cout << b[j] << endl;
-    }
+    //write_answer_to_file("hello.txt", b, full_size-1);
 
     // vector<double> g;
     // for (int i = 0; i < frames.size(); ++i) {

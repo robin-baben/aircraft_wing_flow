@@ -119,7 +119,7 @@ void fill_matrix(
 
     for (int i = 0; i < frames.size(); i++) {
         for (int j = 0; j < frames.size(); j++) {
-            A[i + full_size *j] = DotProd_Point(w_sigma(frames[i].center, frames[j]), frames[i].norm);
+            A[i + full_size *j] = DotProd_Point(w_sigma(frames[i].center, frames[j], 10), frames[i].norm);
         }
     }
     
@@ -132,7 +132,7 @@ void fill_matrix(
 
     for (int i = 0; i < frames.size(); i++) { // в следе нет треугольников, поэтому без проверки
         for (int j = 0; j < trace.size(); j++) {
-            A[i + full_size * (j + frames.size())] = DotProd_Point(w_sigma(frames[i].center, trace[j]), frames[i].norm);
+            A[i + full_size * (j + frames.size())] = DotProd_Point(w_sigma(frames[i].center, trace[j], 10), frames[i].norm);
         }
 
     }
@@ -163,7 +163,7 @@ void fill_matrix_potential_flow(
 
     for (int i = 0; i < frames.size(); i++) {
         for (int j = 0; j < frames.size(); j++) {
-            A[i + full_size *j] = DotProd_Point(w_sigma(frames[i].center, frames[j]), frames[i].norm);
+            A[i + full_size *j] = DotProd_Point(w_sigma(frames[i].center, frames[j], 10), frames[i].norm);
         }
     }
 
@@ -286,11 +286,11 @@ vector<Point3D> Velocity_surface(
     for(Frame f : frames) { //цикл по ячейкам крыла, откуда берем точки коллокации
         Point3D part_sum(0.0, 0.0, 0.0);
         for(Frame s : frames) {
-            part_sum += w_sigma(f.center, s) * g[s.ind];
+            part_sum += w_sigma(f.center, s, 10) * g[s.ind];
         }
 
         for(Frame t : trace) {
-            part_sum += w_sigma(f.center, t) * g[frames.size() + t.ind];
+            part_sum += w_sigma(f.center, t, 10) * g[frames.size() + t.ind];
         }
         W.push_back(W_inf + part_sum);
     }
@@ -315,7 +315,7 @@ Point3D Strength_coeff(const vector<double>& C_p, const vector<Frame>& frames, d
     {
         C_f += -1 * C_p[j] * frames[j].norm * frames[j].square;
     }
-    return C_f;
+    return C_f / wing_square;
 }
 
 vector<Point3D> velocity_field(
@@ -354,11 +354,11 @@ vector<Point3D> velocity_field(
                 Point3D part_sum{0.0, 0.0, 0.0};
 
                 for(int j=0; j<frames.size(); ++j) {
-                    part_sum += w_sigma(X, frames[j]) * g[j];
+                    part_sum += w_sigma(X, frames[j], BioSavarParametr) * g[j];
                 }
 
                 for(int j=0; j<trace.size(); ++j) {
-                    part_sum += w_sigma(X, trace[j]) * g[frames.size() + j];
+                    part_sum += w_sigma(X, trace[j], BioSavarParametr) * g[frames.size() + j];
                 }
 
                 velocity_field_var.push_back(W_start + part_sum);
@@ -380,7 +380,7 @@ int main() {
     vector<Frame> trace;
     Point3D W_inf;
 
-    double alpha = 10.0 * M_PI / 180;
+    double alpha = 20.0 * M_PI / 180;
     double beta = 0.0;
     double rho = 1.0;
 
@@ -391,7 +391,7 @@ int main() {
     
     double par = 10.0;
 
-    init("wing_10_20.dat", frames, tr_neib_up, tr_neib_down); //перенести расчет W в йункцию инит, чтобы вычисленные W можно было использовать
+    init("comput_acc_grid/wing_20_40.dat", frames, tr_neib_up, tr_neib_down); //перенести расчет W в йункцию инит, чтобы вычисленные W можно было использовать
 
     init_trace(tr_neib_up, tr_neib_down, trace, par);
 
@@ -410,7 +410,7 @@ int main() {
 
     dgesv_(&full_size, &Nrhs, A, &full_size, Ipvt, b, &full_size, &info);
 
-    write_answer_to_file("hello.txt", b, full_size-1);
+    write_answer_to_file("comput_acc_grid/coeff_g.txt", b, full_size-1);
 
     vector<double> b_vec;
     for(int i=0; i<full_size-1; ++i) // на единицу меньше, потому что регуляризационный параметр теперь не нужен
@@ -422,19 +422,23 @@ int main() {
 // Ищем поле скоростей на крыле и заносим в файл.
     // for(int i=0; i < W.size(); ++i)
     //     cout << W[i] << endl;
-    write_answer_to_file_point("velocity_file.gv", W);
+    //write_answer_to_file_point("velocity_file.gv", W);
 
 
 // Ищем коэф-ты давления на крыле и заносим в файл
     vector<double> C_p = Pressure_coeff(W_inf, W);
+    write_answer_to_file_double_vec("comput_acc_grid/press_coeff.txt", C_p);
+
+    Point3D C_f = Strength_coeff(C_p, frames);
+    cout << C_f / alpha << endl;
     // for(int i=0; i < Cp.size(); ++i)
     //     cout << Cp[i] << endl;
-    write_answer_to_file_double_vec("press_coeff.txt", C_p);
+    
 
-    vector<Point3D> velocity_field_var = velocity_field("grid.gr", frames, trace, b_vec, W_inf, 1, "velocity_field.gv");
-    cout << velocity_field_var.size() << endl;
-    for(int i=0; i < 10; ++i)
-        cout << velocity_field_var[i] << endl;
+    vector<Point3D> velocity_field_var = velocity_field("comput_acc_grid/grid_1.gr", frames, trace, b_vec, W_inf, 1, "comput_acc_grid/velocity_field.gv");
+    //cout << velocity_field_var.size() << endl;
+    //for(int i=0; i < 10; ++i)
+        //cout << velocity_field_var[i] << endl;
 
 
     //write_answer_to_file("hello.txt", b, full_size-1);

@@ -65,15 +65,15 @@ double max_z(Frame const& f) {
     return *std::max_element(zs.begin(), zs.end());
 }
 
-Point3D w_sigma(const Point3D x, Frame sigma) {
+Point3D w_sigma(const Point3D x, Frame sigma, int param) {
     if (!sigma.triangle) {
-        return -1 * (Bio_Savar(x, sigma.points[0], sigma.points[1]) +
-                    Bio_Savar(x, sigma.points[1], sigma.points[2]) +
-                    Bio_Savar(x, sigma.points[2], sigma.points[3]) +
-                    Bio_Savar(x, sigma.points[3], sigma.points[0]))  / (4 * M_PI);
+        return -1 * (Bio_Savar(x, sigma.points[0], sigma.points[1], param) +
+                    Bio_Savar(x, sigma.points[1], sigma.points[2], param) +
+                    Bio_Savar(x, sigma.points[2], sigma.points[3], param) +
+                    Bio_Savar(x, sigma.points[3], sigma.points[0], param))  / (4 * M_PI);
     } else {
-        return -1 * (Bio_Savar(x, sigma.points[0], sigma.points[1]) +
-                    Bio_Savar(x, sigma.points[1], sigma.points[2]) +
-                    Bio_Savar(x, sigma.points[2], sigma.points[0]))  / (4 * M_PI);
+        return -1 * (Bio_Savar(x, sigma.points[0], sigma.points[1], param) +
+                    Bio_Savar(x, sigma.points[1], sigma.points[2], param) +
+                    Bio_Savar(x, sigma.points[2], sigma.points[0], param))  / (4 * M_PI);
     }
 }
